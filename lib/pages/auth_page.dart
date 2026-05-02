@@ -12,20 +12,34 @@ class _AuthPageState extends State<AuthPage> {
   bool _isLogin = true;
   bool _isLoading = false;
 
-  final TextEditingController _loginEmailController = TextEditingController();
-  final TextEditingController _loginPasswordController =
-      TextEditingController();
+  final _loginEmailController = TextEditingController();
+  final _loginPasswordController = TextEditingController();
 
-  final TextEditingController _registerNameController = TextEditingController();
-  final TextEditingController _registerEmailController =
-      TextEditingController();
-  final TextEditingController _registerPasswordController =
-      TextEditingController();
-  final TextEditingController _registerConfirmPasswordController =
-      TextEditingController();
+  final _registerNameController = TextEditingController();
+  final _registerEmailController = TextEditingController();
+  final _registerPasswordController = TextEditingController();
+  final _registerConfirmPasswordController = TextEditingController();
 
   String _loginError = '';
   String _registerError = '';
+
+  @override
+  void dispose() {
+    _loginEmailController.dispose();
+    _loginPasswordController.dispose();
+
+    _registerNameController.dispose();
+    _registerEmailController.dispose();
+    _registerPasswordController.dispose();
+    _registerConfirmPasswordController.dispose();
+
+    super.dispose();
+  }
+
+  bool _isValidCampusEmail(String email) {
+    final regex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.ac\.id$');
+    return regex.hasMatch(email);
+  }
 
   Future<void> _handleLogin() async {
     setState(() {
@@ -38,15 +52,33 @@ class _AuthPageState extends State<AuthPage> {
         email: _loginEmailController.text.trim(),
         password: _loginPasswordController.text.trim(),
       );
-      if (mounted) return;
-    } catch (e) {
-      if (mounted) {
-        setState(() => _loginError = 'Email atau password salah');
-      }
-    }
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Login berhasil'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loginError = e.message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _loginError = 'Terjadi kesalahan saat login';
+      });
+    } finally {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -56,65 +88,143 @@ class _AuthPageState extends State<AuthPage> {
       _registerError = '';
     });
 
-    if (_registerNameController.text.trim().isEmpty) {
-      if (mounted) {
-        setState(() => _registerError = 'Nama lengkap harus diisi');
-        setState(() => _isLoading = false);
-      }
+    final name = _registerNameController.text.trim();
+    final email = _registerEmailController.text.trim();
+    final password = _registerPasswordController.text.trim();
+    final confirmPassword = _registerConfirmPasswordController.text.trim();
+
+    if (name.isEmpty) {
+      setState(() {
+        _registerError = 'Nama lengkap harus diisi';
+        _isLoading = false;
+      });
       return;
     }
-    if (!_registerEmailController.text.trim().contains('.ac.id')) {
-      if (mounted) {
-        setState(
-          () => _registerError = 'Harus menggunakan email kampus (.ac.id)',
-        );
-        setState(() => _isLoading = false);
-      }
+
+    if (!_isValidCampusEmail(email)) {
+      setState(() {
+        _registerError =
+            'Gunakan email kampus yang valid (contoh: nama@kampus.ac.id)';
+        _isLoading = false;
+      });
       return;
     }
-    if (_registerPasswordController.text.length < 8) {
-      if (mounted) {
-        setState(() => _registerError = 'Password minimal 8 karakter');
-        setState(() => _isLoading = false);
-      }
+
+    if (password.length < 8) {
+      setState(() {
+        _registerError = 'Password minimal 8 karakter';
+        _isLoading = false;
+      });
       return;
     }
-    if (_registerPasswordController.text !=
-        _registerConfirmPasswordController.text) {
-      if (mounted) {
-        setState(() => _registerError = 'Konfirmasi password tidak cocok');
-        setState(() => _isLoading = false);
-      }
+
+    if (password != confirmPassword) {
+      setState(() {
+        _registerError = 'Konfirmasi password tidak cocok';
+        _isLoading = false;
+      });
       return;
     }
 
     try {
       await Supabase.instance.client.auth.signUp(
-        email: _registerEmailController.text.trim(),
-        password: _registerPasswordController.text.trim(),
-        data: {'full_name': _registerNameController.text.trim()},
+        email: email,
+        password: password,
+        data: {'full_name': name},
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pendaftaran berhasil! Silakan login.')),
-        );
-        setState(() {
-          _isLogin = true;
-          _registerEmailController.clear();
-          _registerPasswordController.clear();
-          _registerConfirmPasswordController.clear();
-          _registerNameController.clear();
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _registerError = 'Gagal mendaftar: ${e.toString()}');
-      }
-    }
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pendaftaran berhasil! Silakan cek email verifikasi.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      setState(() {
+        _isLogin = true;
+
+        _registerNameController.clear();
+        _registerEmailController.clear();
+        _registerPasswordController.clear();
+        _registerConfirmPasswordController.clear();
+      });
+    } on AuthException catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _registerError = e.message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _registerError = 'Terjadi kesalahan saat mendaftar';
+      });
+    } finally {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
     }
+  }
+
+  InputDecoration _inputDecoration({
+    required String label,
+    required String hint,
+    required IconData icon,
+    String? helper,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      helperText: helper,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      prefixIcon: Icon(icon),
+    );
+  }
+
+  Widget _buildButton({required String text, required VoidCallback onPressed}) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF1E3A5F),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                text,
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildError(String message) {
+    if (message.isEmpty) return const SizedBox();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Text(
+        message,
+        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
+      ),
+    );
   }
 
   @override
@@ -125,7 +235,6 @@ class _AuthPageState extends State<AuthPage> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   width: 80,
@@ -137,6 +246,7 @@ class _AuthPageState extends State<AuthPage> {
                   child: const Icon(Icons.book, size: 45, color: Colors.white),
                 ),
                 const SizedBox(height: 16),
+
                 const Text(
                   'NOTESHARE',
                   style: TextStyle(
@@ -145,6 +255,7 @@ class _AuthPageState extends State<AuthPage> {
                     color: Color(0xFF1E3A5F),
                   ),
                 ),
+
                 const SizedBox(height: 32),
 
                 if (_isLogin) ...[
@@ -153,80 +264,48 @@ class _AuthPageState extends State<AuthPage> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 24),
+
                   TextField(
                     controller: _loginEmailController,
-                    decoration: InputDecoration(
-                      labelText: 'Email Mahasiswa',
-                      hintText: 'email@mahasiswa.ac.id',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.email_outlined),
+                    decoration: _inputDecoration(
+                      label: 'Email Mahasiswa',
+                      hint: 'nama@kampus.ac.id',
+                      icon: Icons.email_outlined,
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
                   TextField(
                     controller: _loginPasswordController,
                     obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      hintText: 'Masukkan password',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.lock_outline),
+                    decoration: _inputDecoration(
+                      label: 'Password',
+                      hint: 'Masukkan password',
+                      icon: Icons.lock_outline,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  // Lupa Password button removed - akan ditambahkan di update berikutnya
-                  if (_loginError.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        _loginError,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E3A5F),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Login', style: TextStyle(fontSize: 16)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+
+                  _buildError(_loginError),
+
+                  const SizedBox(height: 20),
+
+                  _buildButton(text: 'Login', onPressed: _handleLogin),
 
                   const SizedBox(height: 24),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text('Belum punya akun?'),
                       TextButton(
-                        onPressed: () => setState(() => _isLogin = false),
-                        child: const Text(
-                          'Daftar',
-                          style: TextStyle(
-                            color: Color(0xFF1E3A5F),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isLogin = false;
+                            _loginError = '';
+                          });
+                        },
+                        child: const Text('Daftar'),
                       ),
                     ],
                   ),
@@ -235,108 +314,74 @@ class _AuthPageState extends State<AuthPage> {
                     'Daftar Akun Baru',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                   ),
+
                   const SizedBox(height: 24),
+
                   TextField(
                     controller: _registerNameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nama Lengkap',
-                      hintText: 'Masukkan nama lengkap',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.person_outline),
+                    decoration: _inputDecoration(
+                      label: 'Nama Lengkap',
+                      hint: 'Masukkan nama lengkap',
+                      icon: Icons.person_outline,
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
                   TextField(
                     controller: _registerEmailController,
-                    decoration: InputDecoration(
-                      labelText: 'Email Mahasiswa',
-                      hintText: 'email@mahasiswa.ac.id',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.email_outlined),
-                      helperText: 'Harus menggunakan email kampus (.ac.id)',
+                    decoration: _inputDecoration(
+                      label: 'Email Mahasiswa',
+                      hint: 'nama@kampus.ac.id',
+                      icon: Icons.email_outlined,
+                      helper: 'Harus menggunakan email kampus (*.ac.id)',
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
                   TextField(
                     controller: _registerPasswordController,
                     obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      hintText: 'Minimal 8 karakter',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.lock_outline),
+                    decoration: _inputDecoration(
+                      label: 'Password',
+                      hint: 'Minimal 8 karakter',
+                      icon: Icons.lock_outline,
                     ),
                   ),
+
                   const SizedBox(height: 16),
+
                   TextField(
                     controller: _registerConfirmPasswordController,
                     obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: 'Konfirmasi Password',
-                      hintText: 'Masukkan ulang password',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.lock_outline),
+                    decoration: _inputDecoration(
+                      label: 'Konfirmasi Password',
+                      hint: 'Masukkan ulang password',
+                      icon: Icons.lock_outline,
                     ),
                   ),
-                  if (_registerError.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        _registerError,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleRegister,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E3A5F),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Daftar',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+
+                  _buildError(_registerError),
+
+                  const SizedBox(height: 20),
+
+                  _buildButton(text: 'Daftar', onPressed: _handleRegister),
 
                   const SizedBox(height: 24),
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text('Sudah punya akun?'),
                       TextButton(
-                        onPressed: () => setState(() => _isLogin = true),
-                        child: const Text(
-                          'Login',
-                          style: TextStyle(
-                            color: Color(0xFF1E3A5F),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isLogin = true;
+                            _registerError = '';
+                          });
+                        },
+                        child: const Text('Login'),
                       ),
                     ],
                   ),
