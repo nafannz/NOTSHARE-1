@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../main.dart';
 import 'auth_page.dart';
+import 'note_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -46,7 +48,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
-      
+
       if (user != null) {
         final response = await supabase
             .from('notes')
@@ -73,14 +75,16 @@ class _HomePageState extends State<HomePage> {
 
   // ========== GET LAST UPDATE FOR CATEGORY ==========
   String _getLastUpdateForCategory(String categoryId) {
-    final notesInCategory = _notes.where((note) => note['category_id'] == categoryId).toList();
+    final notesInCategory = _notes
+        .where((note) => note['category_id'] == categoryId)
+        .toList();
     if (notesInCategory.isEmpty) return 'Belum ada catatan';
-    
+
     notesInCategory.sort((a, b) => b['created_at'].compareTo(a['created_at']));
     final lastUpdate = DateTime.parse(notesInCategory.first['created_at']);
     final now = DateTime.now();
     final difference = now.difference(lastUpdate);
-    
+
     if (difference.inDays >= 7) {
       return '${(difference.inDays / 7).floor()} minggu lalu';
     } else if (difference.inDays >= 1) {
@@ -111,7 +115,7 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
-    
+
     if (confirm == true) {
       await Supabase.instance.client.auth.signOut();
       if (mounted) {
@@ -130,154 +134,366 @@ class _HomePageState extends State<HomePage> {
     final totalCategories = _categories.length;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('NOTESHARE'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-          ),
-        ],
-      ),
+      backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: () async {
           await _fetchCategories();
           await _fetchNotes();
         },
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ========== SEARCH BAR ==========
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Cari catatan atau mata kuliah...',
-                    prefixIcon: Icon(Icons.search),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
+              const SizedBox(height: 12),
+              // ========== WELCOME & ACTION ==========
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selamat Datang,',
+                        style: TextStyle(
+                          color: AppColors.textSecond,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Pelajar',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _logout,
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.border, width: 1),
+                      ),
+                      child: const Icon(
+                        Icons.logout_rounded,
+                        color: AppColors.textSecond,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
-              
+
               // ========== RINGKASAN AKTIVITAS ==========
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.primary,
+                      AppColors.primary.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withOpacity(0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('RINGKASAN AKTIVITAS', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _buildSummaryCard('Total Catatan', totalNotes.toString()),
-                        _buildSummaryCard('Mata Kuliah', totalCategories.toString()),
-                      ],
+                    const Text(
+                      'STATISTIK BELAJARMU',
+                      style: TextStyle(
+                        color: AppColors.onPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
-                        _buildSummaryCard('AI Rekomendasi', '3'),
-                        _buildSummaryCard('Lanjut Belajar', '2'),
+                        _buildSummaryCard(
+                          'Total Catatan',
+                          totalNotes.toString(),
+                        ),
+                        _buildSummaryCard(
+                          'Mata Kuliah',
+                          totalCategories.toString(),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              
+              const SizedBox(height: 28),
+
               // ========== CATATAN MATA KULIAH ==========
               Row(
                 children: [
-                  const Text('CATATAN MATA KULIAH', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'MATA KULIAH',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      letterSpacing: 1.2,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                   const Spacer(),
-                  Text('(otomatis oleh AI)', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+                  Text(
+                    '${_categories.length} total',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecond,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // List Mata Kuliah dari Database
               if (_isCategoriesLoading)
-                const Center(child: CircularProgressIndicator())
+                const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                )
               else if (_categories.isEmpty)
-                const Center(child: Text('Belum ada mata kuliah'))
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border, width: 1),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Belum ada mata kuliah',
+                      style: TextStyle(color: AppColors.textSecond),
+                    ),
+                  ),
+                )
               else
-                ..._categories.map((category) => _buildSubjectCard(
-                  category['name'],
-                  '${_getNoteCountForCategory(category['id'])} catatan · Semester ${category['semester'] ?? '?'}',
-                  'Terakhir: ${_getLastUpdateForCategory(category['id'])}',
-                )),
-              
-              const SizedBox(height: 24),
-              
+                ..._categories.map(
+                  (category) => _buildSubjectCard(
+                    category['name'],
+                    '${_getNoteCountForCategory(category['id'])} catatan',
+                    'Semester ${category['semester'] ?? '?'}',
+                  ),
+                ),
+
+              const SizedBox(height: 28),
+
               // ========== CATATAN TERBARU ==========
-              const Text('CATATAN TERBARU', style: TextStyle(fontWeight: FontWeight.bold)),
+              Row(
+                children: [
+                  const Text(
+                    'CATATAN TERBARU',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      letterSpacing: 1.2,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_notes.length} total',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecond,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
-              
+
               if (_isLoading)
-                const Center(child: CircularProgressIndicator())
+                const Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
+                  ),
+                )
               else if (_notes.isEmpty)
-                const Center(child: Text('Belum ada catatan. Upload dulu!'))
+                Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border, width: 1),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Belum ada catatan. Mari upload yang pertama!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textSecond),
+                    ),
+                  ),
+                )
               else
                 ..._notes.take(5).map((note) => _buildNoteCard(note)),
+
+              const SizedBox(height: 24),
             ],
           ),
         ),
       ),
     );
   }
-  
+
   Widget _buildSummaryCard(String title, String value) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.all(4),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
         ),
         child: Column(
           children: [
-            Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F))),
-            Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onPrimary,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white70,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
-  
-  Widget _buildSubjectCard(String title, String subtitle, String lastUpdate) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                Text(lastUpdate, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
+
+  Widget _buildSubjectCard(String title, String subtitle, String semester) {
+    return GestureDetector(
+      onTap: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Membuka mata kuliah: $title'),
+            duration: const Duration(seconds: 1),
           ),
-          const Icon(Icons.chevron_right, color: Colors.grey),
-        ],
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.book_rounded,
+                color: AppColors.primary,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecond,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          color: AppColors.textSecond,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        semester,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecond,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecond,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -288,28 +504,89 @@ class _HomePageState extends State<HomePage> {
     if (note['categories'] != null) {
       categoryName = note['categories']['name'] ?? 'Tanpa kategori';
     }
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(note['title'] ?? 'Tanpa judul', style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(categoryName, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text(
-            note['created_at'] != null 
-                ? DateTime.parse(note['created_at']).toString().substring(0, 16) 
-                : '',
-            style: const TextStyle(fontSize: 10, color: Colors.grey),
-          ),
-        ],
+
+    String timeAgo = '';
+    if (note['created_at'] != null) {
+      final createdAt = DateTime.parse(note['created_at']);
+      final difference = DateTime.now().difference(createdAt);
+      if (difference.inDays >= 7) {
+        timeAgo = '${(difference.inDays / 7).floor()}w ago';
+      } else if (difference.inDays >= 1) {
+        timeAgo = '${difference.inDays}d ago';
+      } else if (difference.inHours >= 1) {
+        timeAgo = '${difference.inHours}h ago';
+      } else {
+        timeAgo = '${difference.inMinutes}m ago';
+      }
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => NoteDetailPage(note: note)),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    note['title'] ?? 'Tanpa judul',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    categoryName,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              timeAgo,
+              style: const TextStyle(fontSize: 11, color: AppColors.textSecond),
+            ),
+          ],
+        ),
       ),
     );
   }

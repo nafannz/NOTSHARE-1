@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../main.dart';
 import 'splash_page.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -24,12 +25,15 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
-      
+
       if (user != null) {
         setState(() {
           _userData = {
             'email': user.email,
-            'full_name': user.userMetadata?['full_name'] ?? user.email?.split('@').first ?? 'User',
+            'full_name':
+                user.userMetadata?['full_name'] ??
+                user.email?.split('@').first ??
+                'User',
             'created_at': user.createdAt,
           };
           _isLoading = false;
@@ -42,183 +46,284 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  void _showFeatureMessage(String featureName) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$featureName sedang dikembangkan'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   Future<void> _logout() async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Konfirmasi Logout'),
-      content: const Text('Apakah Anda yakin ingin keluar?'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Batal'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          child: const Text('Logout', style: TextStyle(color: Colors.red)),
-        ),
-      ],
-    ),
-  );
-  
-  if (confirm == true) {
-    await Supabase.instance.client.auth.signOut();
-    if (mounted) {
-      // Arahkan ke SplashPage (bukan langsung AuthPage)
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const SplashPage()),
-      );
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Konfirmasi Logout'),
+        content: const Text('Apakah Anda yakin ingin keluar?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await Supabase.instance.client.auth.signOut();
+      if (mounted) {
+        // Arahkan ke SplashPage (bukan langsung AuthPage)
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const SplashPage()),
+        );
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
     final String userName = _userData?['full_name'] ?? 'User';
     final String userEmail = _userData?['email'] ?? 'email@example.com';
-    final String firstLetter = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+    final String firstLetter = userName.isNotEmpty
+        ? userName[0].toUpperCase()
+        : 'U';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profil'),
-        centerTitle: true,
-      ),
+      backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: _fetchUserData,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              // Avatar
+              const SizedBox(height: 20),
+              // Avatar & User Info
               Center(
                 child: Column(
                   children: [
                     Container(
-                      width: 100,
-                      height: 100,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E3A5F),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.primary,
+                            AppColors.primary.withOpacity(0.7),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
                       child: Center(
                         child: Text(
                           firstLetter,
-                          style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 36,
+                            color: AppColors.onPrimary,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     if (_isLoading)
-                      const CircularProgressIndicator()
+                      const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      )
                     else ...[
                       Text(
                         userName,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                          letterSpacing: 0.2,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         userEmail,
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(20),
+                        style: const TextStyle(
+                          color: AppColors.textSecond,
+                          fontSize: 12,
                         ),
-                        child: const Text('Anggota Aktif', style: TextStyle(color: Colors.blue, fontSize: 12)),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.success.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: const Text(
+                          'Anggota Aktif',
+                          style: TextStyle(
+                            color: AppColors.success,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-              
+              const SizedBox(height: 28),
+
               // Statistik Saya
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
-                child: Text('STATISTIK SAYA', style: TextStyle(fontWeight: FontWeight.bold)),
+                child: const Text(
+                  'STATISTIK',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                    letterSpacing: 1.2,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _buildStatCard('12', 'Catatan Upload'),
-                  _buildStatCard('234', 'Total Download'),
+                  _buildStatCard('12', 'Upload'),
+                  _buildStatCard('234', 'Download'),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Row(
                 children: [
-                  _buildStatCard('47', 'AI Interaksi'),
-                  _buildStatCard('8', 'Catatan Favorit'),
+                  _buildStatCard('47', 'Interaksi'),
+                  _buildStatCard('8', 'Favorit'),
                 ],
               ),
-              const SizedBox(height: 24),
-              
+              const SizedBox(height: 28),
+
               // Menu Items
-              _buildMenuItem(Icons.upload, 'Catatan yang Saya Upload', count: '12'),
-              _buildMenuItem(Icons.download, 'Catatan yang Saya Download', count: '28'),
-              _buildMenuItem(Icons.favorite, 'Catatan Favorit', count: '8'),
-              _buildMenuItem(Icons.history, 'Riwayat Dibaca', count: '45'),
-              _buildMenuItem(Icons.settings, 'Pengaturan Akun'),
-              _buildMenuItem(Icons.help, 'Pusat Bantuan'),
-              const SizedBox(height: 24),
-              
+              _buildMenuItem(
+                Icons.upload_rounded,
+                'Catatan Saya Upload',
+                count: '12',
+                onTap: () => _showFeatureMessage('Catatan Upload'),
+              ),
+              _buildMenuItem(
+                Icons.download_rounded,
+                'Catatan Saya Download',
+                count: '28',
+                onTap: () => _showFeatureMessage('Catatan Download'),
+              ),
+              _buildMenuItem(
+                Icons.favorite_rounded,
+                'Catatan Favorit',
+                count: '8',
+                onTap: () => _showFeatureMessage('Catatan Favorit'),
+              ),
+              _buildMenuItem(
+                Icons.history_rounded,
+                'Riwayat Dibaca',
+                count: '45',
+                onTap: () => _showFeatureMessage('Riwayat Dibaca'),
+              ),
+              _buildMenuItem(
+                Icons.settings_rounded,
+                'Pengaturan Akun',
+                onTap: () => _showFeatureMessage('Pengaturan Akun'),
+              ),
+              _buildMenuItem(
+                Icons.help_rounded,
+                'Pusat Bantuan',
+                onTap: () => _showFeatureMessage('Pusat Bantuan'),
+              ),
+              const SizedBox(height: 28),
+
               // Logout Button
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                child: ElevatedButton.icon(
                   onPressed: _logout,
-                  icon: const Icon(Icons.logout, color: Colors.red),
-                  label: const Text('KELUAR', style: TextStyle(color: Colors.red)),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text('KELUAR DARI AKUN'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              
+              const SizedBox(height: 20),
+
               // Versi Aplikasi
               const Text(
                 'NOTESHARE v1.0.0',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecond,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
+              const SizedBox(height: 12),
             ],
           ),
         ),
       ),
     );
   }
-  
+
   Widget _buildStatCard(String value, String label) {
     return Expanded(
       child: Container(
-        margin: const EdgeInsets.all(4),
-        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1,
-              blurRadius: 4,
-            ),
-          ],
+          border: Border.all(color: AppColors.border, width: 1),
         ),
         child: Column(
           children: [
             Text(
               value,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F)),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.textSecond,
+                fontWeight: FontWeight.w500,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -227,45 +332,73 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String label, {String? count}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
-            spreadRadius: 1,
-            blurRadius: 2,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.grey[600], size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+  Widget _buildMenuItem(
+    IconData icon,
+    String label, {
+    String? count,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
-          ),
-          if (count != null)
+          ],
+        ),
+        child: Row(
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.primary.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Icon(icon, color: AppColors.primary, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
-                count,
-                style: const TextStyle(fontSize: 12, color: Colors.blue),
+                label,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
-          const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-        ],
+            if (count != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  count,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.textSecond,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

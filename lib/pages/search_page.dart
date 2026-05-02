@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'note_detail_page.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -10,11 +11,11 @@ class SearchPage extends StatefulWidget {
 
 class _SearchPageState extends State<SearchPage> {
   final TextEditingController _searchController = TextEditingController();
-  
+
   List<Map<String, dynamic>> _allNotes = [];
   List<Map<String, dynamic>> _filteredNotes = [];
   List<Map<String, dynamic>> _categories = [];
-  
+
   String? _selectedCategoryId;
   bool _isLoading = true;
 
@@ -45,23 +46,23 @@ class _SearchPageState extends State<SearchPage> {
   // ========== FETCH NOTES FROM DATABASE ==========
   Future<void> _fetchNotes() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
-      
+
       if (user == null) {
         setState(() => _isLoading = false);
         return;
       }
-      
+
       // Ambil notes dengan join ke categories
       final response = await supabase
           .from('notes')
           .select('*, categories(id, name)')
           .eq('user_id', user.id)
           .order('created_at', ascending: false);
-      
+
       setState(() {
         _allNotes = List<Map<String, dynamic>>.from(response);
         _filteredNotes = _allNotes;
@@ -76,20 +77,21 @@ class _SearchPageState extends State<SearchPage> {
   // ========== FILTER NOTES ==========
   void _filterNotes(String query) {
     setState(() {
-      if (query.isEmpty && (_selectedCategoryId == null || _selectedCategoryId == 'all')) {
+      if (query.isEmpty &&
+          (_selectedCategoryId == null || _selectedCategoryId == 'all')) {
         _filteredNotes = _allNotes;
       } else {
         _filteredNotes = _allNotes.where((note) {
           // Filter by search query
           final title = note['title']?.toLowerCase() ?? '';
           final matchesSearch = title.contains(query.toLowerCase());
-          
+
           // Filter by category
           bool matchesCategory = true;
           if (_selectedCategoryId != null && _selectedCategoryId != 'all') {
             matchesCategory = note['category_id'] == _selectedCategoryId;
           }
-          
+
           return matchesSearch && matchesCategory;
         }).toList();
       }
@@ -116,7 +118,7 @@ class _SearchPageState extends State<SearchPage> {
             const Text('Mata Kuliah:'),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: _selectedCategoryId ?? 'all',
+              initialValue: _selectedCategoryId ?? 'all',
               hint: const Text('Pilih mata kuliah'),
               items: _categories.map((category) {
                 return DropdownMenuItem(
@@ -145,10 +147,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cari Catatan'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Cari Catatan'), centerTitle: true),
       body: RefreshIndicator(
         onRefresh: () async {
           await _fetchNotes();
@@ -169,21 +168,26 @@ class _SearchPageState extends State<SearchPage> {
                     icon: const Icon(Icons.filter_list),
                     onPressed: _showFilterDialog,
                   ),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
-            
+
             // ========== FILTER ROW ==========
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Text('FILTER:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'FILTER:',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedCategoryId ?? 'all',
+                      initialValue: _selectedCategoryId ?? 'all',
                       hint: const Text('Semua'),
                       items: _categories.map((category) {
                         return DropdownMenuItem(
@@ -192,21 +196,26 @@ class _SearchPageState extends State<SearchPage> {
                         );
                       }).toList(),
                       onChanged: (value) => _applyCategoryFilter(value),
-                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // ========== RESULT COUNT ==========
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  const Text('Catatan', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const Text(
+                    'Catatan',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
                   const Spacer(),
                   Text(
                     '${_filteredNotes.length} catatan',
@@ -215,56 +224,71 @@ class _SearchPageState extends State<SearchPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             // ========== LIST OF NOTES ==========
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _filteredNotes.isEmpty
-                      ? const Center(child: Text('Tidak ada catatan ditemukan'))
-                      : ListView.builder(
-                          itemCount: _filteredNotes.length,
-                          itemBuilder: (context, index) {
-                            final note = _filteredNotes[index];
-                            // Ambil nama kategori dari relasi
-                            String categoryName = 'Tanpa kategori';
-                            if (note['categories'] != null) {
-                              categoryName = note['categories']['name'] ?? 'Tanpa kategori';
-                            }
-                            // Status verifikasi (sementara semua dianggap terverifikasi)
-                            final isVerified = true;
-                            
-                            return Card(
-                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              child: ListTile(
-                                title: Text(
-                                  note['title'] ?? 'Tanpa judul',
-                                  style: const TextStyle(fontWeight: FontWeight.w500),
-                                ),
-                                subtitle: Text(categoryName),
-                                trailing: isVerified
-                                    ? const Chip(
-                                        label: Text('Terverifikasi'),
-                                        backgroundColor: Colors.green,
-                                        labelStyle: TextStyle(color: Colors.white, fontSize: 12),
-                                      )
-                                    : const Chip(
-                                        label: Text('Belum Terverifikasi'),
-                                        backgroundColor: Colors.grey,
-                                        labelStyle: TextStyle(color: Colors.white, fontSize: 12),
-                                      ),
-                                onTap: () {
-                                  // TODO: Navigasi ke detail catatan
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Fitur detail catatan sedang dikembangkan')),
-                                  );
-                                },
+                  ? const Center(child: Text('Tidak ada catatan ditemukan'))
+                  : ListView.builder(
+                      itemCount: _filteredNotes.length,
+                      itemBuilder: (context, index) {
+                        final note = _filteredNotes[index];
+                        // Ambil nama kategori dari relasi
+                        String categoryName = 'Tanpa kategori';
+                        if (note['categories'] != null) {
+                          categoryName =
+                              note['categories']['name'] ?? 'Tanpa kategori';
+                        }
+                        // Status verifikasi (sementara semua dianggap terverifikasi)
+                        final isVerified = true;
+
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          child: ListTile(
+                            title: Text(
+                              note['title'] ?? 'Tanpa judul',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                            subtitle: Text(categoryName),
+                            trailing: isVerified
+                                ? const Chip(
+                                    label: Text('Terverifikasi'),
+                                    backgroundColor: Colors.green,
+                                    labelStyle: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  )
+                                : const Chip(
+                                    label: Text('Belum Terverifikasi'),
+                                    backgroundColor: Colors.grey,
+                                    labelStyle: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      NoteDetailPage(note: note),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),

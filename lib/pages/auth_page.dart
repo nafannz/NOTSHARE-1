@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'splash_page.dart';
 
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -12,15 +11,19 @@ class AuthPage extends StatefulWidget {
 class _AuthPageState extends State<AuthPage> {
   bool _isLogin = true;
   bool _isLoading = false;
-  
+
   final TextEditingController _loginEmailController = TextEditingController();
-  final TextEditingController _loginPasswordController = TextEditingController();
-  
+  final TextEditingController _loginPasswordController =
+      TextEditingController();
+
   final TextEditingController _registerNameController = TextEditingController();
-  final TextEditingController _registerEmailController = TextEditingController();
-  final TextEditingController _registerPasswordController = TextEditingController();
-  final TextEditingController _registerConfirmPasswordController = TextEditingController();
-  
+  final TextEditingController _registerEmailController =
+      TextEditingController();
+  final TextEditingController _registerPasswordController =
+      TextEditingController();
+  final TextEditingController _registerConfirmPasswordController =
+      TextEditingController();
+
   String _loginError = '';
   String _registerError = '';
 
@@ -29,7 +32,7 @@ class _AuthPageState extends State<AuthPage> {
       _isLoading = true;
       _loginError = '';
     });
-    
+
     try {
       await Supabase.instance.client.auth.signInWithPassword(
         email: _loginEmailController.text.trim(),
@@ -41,7 +44,7 @@ class _AuthPageState extends State<AuthPage> {
         setState(() => _loginError = 'Email atau password salah');
       }
     }
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -52,7 +55,7 @@ class _AuthPageState extends State<AuthPage> {
       _isLoading = true;
       _registerError = '';
     });
-    
+
     if (_registerNameController.text.trim().isEmpty) {
       if (mounted) {
         setState(() => _registerError = 'Nama lengkap harus diisi');
@@ -62,7 +65,9 @@ class _AuthPageState extends State<AuthPage> {
     }
     if (!_registerEmailController.text.trim().contains('.ac.id')) {
       if (mounted) {
-        setState(() => _registerError = 'Harus menggunakan email kampus (.ac.id)');
+        setState(
+          () => _registerError = 'Harus menggunakan email kampus (.ac.id)',
+        );
         setState(() => _isLoading = false);
       }
       return;
@@ -74,14 +79,15 @@ class _AuthPageState extends State<AuthPage> {
       }
       return;
     }
-    if (_registerPasswordController.text != _registerConfirmPasswordController.text) {
+    if (_registerPasswordController.text !=
+        _registerConfirmPasswordController.text) {
       if (mounted) {
         setState(() => _registerError = 'Konfirmasi password tidak cocok');
         setState(() => _isLoading = false);
       }
       return;
     }
-    
+
     try {
       await Supabase.instance.client.auth.signUp(
         email: _registerEmailController.text.trim(),
@@ -105,7 +111,7 @@ class _AuthPageState extends State<AuthPage> {
         setState(() => _registerError = 'Gagal mendaftar: ${e.toString()}');
       }
     }
-    
+
     if (mounted) {
       setState(() => _isLoading = false);
     }
@@ -133,19 +139,28 @@ class _AuthPageState extends State<AuthPage> {
                 const SizedBox(height: 16),
                 const Text(
                   'NOTESHARE',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF1E3A5F)),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E3A5F),
+                  ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 if (_isLogin) ...[
-                  const Text('Masuk ke akun Anda', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Masuk ke akun Anda',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 24),
                   TextField(
                     controller: _loginEmailController,
                     decoration: InputDecoration(
                       labelText: 'Email Mahasiswa',
                       hintText: 'email@mahasiswa.ac.id',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       prefixIcon: const Icon(Icons.email_outlined),
                     ),
                   ),
@@ -156,22 +171,21 @@ class _AuthPageState extends State<AuthPage> {
                     decoration: InputDecoration(
                       labelText: 'Password',
                       hintText: 'Masukkan password',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       prefixIcon: const Icon(Icons.lock_outline),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {},
-                      child: const Text('Lupa Password?', style: TextStyle(color: Colors.grey)),
-                    ),
-                  ),
+                  // Lupa Password button removed - akan ditambahkan di update berikutnya
                   if (_loginError.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(_loginError, style: const TextStyle(color: Colors.red)),
+                      child: Text(
+                        _loginError,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     ),
                   const SizedBox(height: 16),
                   SizedBox(
@@ -181,34 +195,24 @@ class _AuthPageState extends State<AuthPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A5F),
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : const Text('Login', style: TextStyle(fontSize: 16)),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('atau'),
-                      ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.g_mobiledata, size: 24),
-                    label: const Text('Lanjutkan dengan Google'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
+
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -216,19 +220,30 @@ class _AuthPageState extends State<AuthPage> {
                       const Text('Belum punya akun?'),
                       TextButton(
                         onPressed: () => setState(() => _isLogin = false),
-                        child: const Text('Daftar', style: TextStyle(color: Color(0xFF1E3A5F), fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Daftar',
+                          style: TextStyle(
+                            color: Color(0xFF1E3A5F),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ] else ...[
-                  const Text('Daftar Akun Baru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Daftar Akun Baru',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 24),
                   TextField(
                     controller: _registerNameController,
                     decoration: InputDecoration(
                       labelText: 'Nama Lengkap',
                       hintText: 'Masukkan nama lengkap',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       prefixIcon: const Icon(Icons.person_outline),
                     ),
                   ),
@@ -238,7 +253,9 @@ class _AuthPageState extends State<AuthPage> {
                     decoration: InputDecoration(
                       labelText: 'Email Mahasiswa',
                       hintText: 'email@mahasiswa.ac.id',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       prefixIcon: const Icon(Icons.email_outlined),
                       helperText: 'Harus menggunakan email kampus (.ac.id)',
                     ),
@@ -250,7 +267,9 @@ class _AuthPageState extends State<AuthPage> {
                     decoration: InputDecoration(
                       labelText: 'Password',
                       hintText: 'Minimal 8 karakter',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       prefixIcon: const Icon(Icons.lock_outline),
                     ),
                   ),
@@ -261,14 +280,19 @@ class _AuthPageState extends State<AuthPage> {
                     decoration: InputDecoration(
                       labelText: 'Konfirmasi Password',
                       hintText: 'Masukkan ulang password',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       prefixIcon: const Icon(Icons.lock_outline),
                     ),
                   ),
                   if (_registerError.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: Text(_registerError, style: const TextStyle(color: Colors.red)),
+                      child: Text(
+                        _registerError,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     ),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -278,34 +302,27 @@ class _AuthPageState extends State<AuthPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1E3A5F),
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: _isLoading
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Daftar', style: TextStyle(fontSize: 16)),
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Daftar',
+                              style: TextStyle(fontSize: 16),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Expanded(child: Divider()),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('atau'),
-                      ),
-                      const Expanded(child: Divider()),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.g_mobiledata, size: 24),
-                    label: const Text('Lanjutkan dengan Google'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
+
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -313,7 +330,13 @@ class _AuthPageState extends State<AuthPage> {
                       const Text('Sudah punya akun?'),
                       TextButton(
                         onPressed: () => setState(() => _isLogin = true),
-                        child: const Text('Login', style: TextStyle(color: Color(0xFF1E3A5F), fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Login',
+                          style: TextStyle(
+                            color: Color(0xFF1E3A5F),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
